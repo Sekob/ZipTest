@@ -9,9 +9,32 @@ namespace CustomBuffers
 {
     public class BufferManager
     {
+        public class Buffer
+        {
+            private byte[] _data;
+            private int _amountOfData;
+
+            public Buffer(int bufferSize)
+            {
+                _data = new byte[bufferSize];
+                _amountOfData = 0;
+            }
+
+            public byte[] Data => _data;
+            public int AmountOfData => _amountOfData;
+
+            public byte[] SwapData (byte[] newData, int amount)
+            {
+                _amountOfData = amount;
+                byte[] tempData = _data;
+                _data = newData;
+                return tempData;
+            }
+        }
+
         private int _bufferSizeInBytes;
         private int _quantityOfBuffers;
-        private Queue<byte[]> _buffers;
+        private Queue<Buffer> _buffers;
         private object _bufferLocker = new object();
         //TODO: check for NotEnoughtMemory
         public BufferManager(int bufferSizeInBytes, int initialQuantityOfBuffers, bool initBuffers)
@@ -21,7 +44,7 @@ namespace CustomBuffers
 
             try
             {
-                _buffers = new Queue<byte[]>(initialQuantityOfBuffers);
+                _buffers = new Queue<Buffer>(initialQuantityOfBuffers);
             }
             catch (Exception ex)
             {
@@ -35,7 +58,7 @@ namespace CustomBuffers
             {
                 try
                 {
-                    _buffers.Enqueue(new byte[_bufferSizeInBytes]);
+                    _buffers.Enqueue(new Buffer(_bufferSizeInBytes));
                 }
                 //Just for NotEnoughtMemory
                 catch (Exception ex)
@@ -44,34 +67,42 @@ namespace CustomBuffers
                 }
             }
         }
-
-        public byte[] DequeueFreeBuffer()
+        // TODO: need to think about Monitor.Exit
+        public Buffer DequeueFreeBuffer()
         {
             while (true)
+            {
+                if (!Monitor.TryEnter(_bufferLocker))
+                {
+                    Thread.Sleep(0);
+                    continue;
+                }
+
+                if (_buffers.Count == 0)
+                {
+                    Monitor.Exit(_bufferLocker);
+                    Thread.Sleep(0);
+                    continue;
+                }
+
                 try
                 {
-                    Monitor.Enter(_bufferLocker);
-                    if (_buffers.Count == 0)
-                    {
-                        Thread.Sleep(0);
-                        continue;
-                    }
-
                     return _buffers.Dequeue();
                 }
                 finally
                 {
                     Monitor.Exit(_bufferLocker);
                 }
+            }
         }
 
-        public void EnqueueFreeBuffer(byte[] buffer)
+        public void EnqueueFreeBuffer(Buffer buffer)
         {
             try
             {
-                Monitor.Enter(_bufferLocker);
+                while (!Monitor.TryEnter(_bufferLocker))
+                    Thread.Sleep(0);
                 _buffers.Enqueue(buffer);
-                return;
             }
             finally
             {

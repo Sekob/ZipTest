@@ -44,8 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BufferManager.cs" />
+    <Compile Include="MultithreadedZip.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Reader\IReader.cs" />
+    <Compile Include="Reader\Portion.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
