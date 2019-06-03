@@ -1,10 +1,31 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
+using System.Threading;
 
 namespace ZipTest
 {
     class Program
     {
+        class Chunk
+        {
+            public int Count { get; private set; }
+            public int Capacity { get; private set; }
+            public byte[] Data { get; private set; }
+
+            public Chunk(int capacity)
+            {
+                Data = new byte[capacity];
+                Capacity = capacity;
+                Count = 0;
+            }
+
+            public void SetCount(int count)
+            {
+                Count = count;
+            }
+        }
+
         static void Main(string[] args)
         {
             if (args.Length != 3)
@@ -41,11 +62,48 @@ namespace ZipTest
             if (!ValidateInputFileName(fromFileName, "compress"))
                 return;
 
-            var zipService = new MultithreadedZip();
-            Console.WriteLine(zipService.ThreadCount);
+            const int amountToRead = 1024 * 1024 * 50;
+            int numberOfchunks = Environment.ProcessorCount;
+            Thread[] workingThreads = new Thread[numberOfchunks];
+            // Reading speed test
+            using (var file = File.OpenRead(fromFileName))
+            using (var toFile = File.OpenWrite(toFileName))
+            {
+                bool[] compressingDone = new bool[numberOfchunks];
+                Chunk[] chunks = new Chunk[numberOfchunks];
+                for (int i = 0; i < numberOfchunks; i++)
+                {
+                    chunks[i] = new Chunk(amountToRead);
+                }
+
+                for (int i = 0; i < numberOfchunks; i++)
+                {
+                    workingThreads[i] = new Thread(() =>
+                    {
+                        int numberOfThread = i;
+                        bool workDone = false;
+
+                        using()
+                        while (!workDone)
+                        {
+                            if (compressingDone[i] == true)
+                                Thread.Sleep(0);
+
+                        }
+                    });
+                }
+
+                for (int i = 0; i < numberOfchunks; i++)
+                {
+                    file.Read(chunks[i].Data, 0, amountToRead);
+                    chunks[i].SetCount(amountToRead);
+                }
+            }
+
+            //var zipService = new MultithreadedZip();
         }
 
-        private static bool ValidateInputFileName (string fileName, string operation)
+        private static bool ValidateInputFileName(string fileName, string operation)
         {
             if (!File.Exists(fileName))
             {

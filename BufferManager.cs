@@ -68,7 +68,7 @@ namespace CustomBuffers
             }
         }
         // TODO: need to think about Monitor.Exit
-        public Buffer DequeueFreeBuffer()
+        public Buffer DequeueBuffer()
         {
             while (true)
             {
@@ -96,7 +96,7 @@ namespace CustomBuffers
             }
         }
 
-        public void EnqueueFreeBuffer(Buffer buffer)
+        public void EnqueueBuffer(Buffer buffer)
         {
             try
             {
